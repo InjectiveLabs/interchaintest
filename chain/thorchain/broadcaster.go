@@ -110,7 +110,7 @@ func (b *Broadcaster) GetClientContext(ctx context.Context, user User) (client.C
 	if !ok {
 		localDir := b.t.TempDir()
 		containerKeyringDir := path.Join(cn.HomeDir(), "keyring-test")
-		kr, err := dockerutil.NewLocalKeyringFromDockerContainer(ctx, cdc, cn.DockerClient, localDir, containerKeyringDir, cn.containerLifecycle.ContainerID())
+		kr, err := dockerutil.NewLocalKeyringFromDockerContainer(ctx, cdc, cn.DockerClient, localDir, containerKeyringDir, cn.containerLifecycle.ContainerID(), chain.Config().KeyringOptions...)
 		if err != nil {
 			return client.Context{}, err
 		}

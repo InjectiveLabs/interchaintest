@@ -97,6 +97,12 @@ func NewThorchain(testName string, chainConfig ibc.ChainConfig, numValidators in
 		chainConfig.EncodingConfig = &cfg
 	}
 
+	if chainConfig.CryptoCodec == nil {
+		registry := codectypes.NewInterfaceRegistry()
+		cryptocodec.RegisterInterfaces(registry)
+		chainConfig.CryptoCodec = codec.NewProtoCodec(registry)
+	}
+
 	if chainConfig.UsesCometMock() {
 		if numValidators != 1 {
 			panic(fmt.Sprintf("CometMock only supports 1 validator. Set `NumValidators` to 1 in %s's ChainSpec", chainConfig.Name))
@@ -106,16 +112,7 @@ func NewThorchain(testName string, chainConfig ibc.ChainConfig, numValidators in
 		}
 	}
 
-	var cdc *codec.ProtoCodec
-	if chainConfig.CryptoCodec == nil {
-		registry := codectypes.NewInterfaceRegistry()
-		cryptocodec.RegisterInterfaces(registry)
-		cdc = codec.NewProtoCodec(registry)
-	} else {
-		cdc = chainConfig.CryptoCodec
-	}
-
-	kr := keyring.NewInMemory(cdc)
+	kr := keyring.NewInMemory(chainConfig.CryptoCodec, chainConfig.KeyringOptions...)
 
 	return &Thorchain{
 		testName:      testName,
@@ -123,7 +120,7 @@ func NewThorchain(testName string, chainConfig ibc.ChainConfig, numValidators in
 		NumValidators: numValidators,
 		numFullNodes:  numFullNodes,
 		log:           log,
-		cdc:           cdc,
+		cdc:           chainConfig.CryptoCodec,
 		keyring:       kr,
 	}
 }

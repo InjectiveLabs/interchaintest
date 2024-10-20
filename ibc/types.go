@@ -18,6 +18,7 @@ import (
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/03-connection/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
 )
@@ -80,6 +81,8 @@ type ChainConfig struct {
 	EncodingConfig *testutil.TestEncodingConfig
 	// Non-nil will override the crypto codec used to marhshal keyring keys.
 	CryptoCodec *codec.ProtoCodec
+	// When provided, adds keyring options such as custom HD path.
+	KeyringOptions []keyring.Option
 	// Required when the chain requires the chain-id field to be populated for certain commands
 	UsingChainIDFlagCLI bool `yaml:"using-chain-id-flag-cli"`
 	// Configuration describing additional sidecar processes.
@@ -233,6 +236,14 @@ func (c ChainConfig) MergeChainSpecConfig(other ChainConfig) ChainConfig {
 
 	if other.EncodingConfig != nil {
 		c.EncodingConfig = other.EncodingConfig
+	}
+
+	if other.CryptoCodec != nil {
+		c.CryptoCodec = other.CryptoCodec
+	}
+
+	if other.KeyringOptions != nil {
+		c.KeyringOptions = other.KeyringOptions
 	}
 
 	if len(other.SidecarConfigs) > 0 {
