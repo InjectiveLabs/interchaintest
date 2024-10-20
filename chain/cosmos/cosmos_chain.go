@@ -111,9 +111,15 @@ func NewCosmosChain(testName string, chainConfig ibc.ChainConfig, numValidators 
 		}
 	}
 
-	registry := codectypes.NewInterfaceRegistry()
-	cryptocodec.RegisterInterfaces(registry)
-	cdc := codec.NewProtoCodec(registry)
+	var cdc *codec.ProtoCodec
+	if chainConfig.CryptoCodec == nil {
+		registry := codectypes.NewInterfaceRegistry()
+		cryptocodec.RegisterInterfaces(registry)
+		cdc = codec.NewProtoCodec(registry)
+	} else {
+		cdc = chainConfig.CryptoCodec
+	}
+
 	kr := keyring.NewInMemory(cdc)
 
 	return &CosmosChain{

@@ -17,6 +17,7 @@ import (
 
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/03-connection/types"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
 )
@@ -77,6 +78,8 @@ type ChainConfig struct {
 	ConfigFileOverrides map[string]any
 	// Non-nil will override the encoding config, used for cosmos chains only.
 	EncodingConfig *testutil.TestEncodingConfig
+	// Non-nil will override the crypto codec used to marhshal keyring keys.
+	CryptoCodec *codec.ProtoCodec
 	// Required when the chain requires the chain-id field to be populated for certain commands
 	UsingChainIDFlagCLI bool `yaml:"using-chain-id-flag-cli"`
 	// Configuration describing additional sidecar processes.
