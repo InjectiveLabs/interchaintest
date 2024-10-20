@@ -103,13 +103,14 @@ func (b *Broadcaster) GetFactory(ctx context.Context, user User) (tx.Factory, er
 // client.Context.
 func (b *Broadcaster) GetClientContext(ctx context.Context, user User) (client.Context, error) {
 	chain := b.chain
+	cdc := chain.GetCodec()
 	cn := chain.GetFullNode()
 
 	_, ok := b.keyrings[user]
 	if !ok {
 		localDir := b.t.TempDir()
 		containerKeyringDir := path.Join(cn.HomeDir(), "keyring-test")
-		kr, err := dockerutil.NewLocalKeyringFromDockerContainer(ctx, cn.DockerClient, localDir, containerKeyringDir, cn.containerLifecycle.ContainerID())
+		kr, err := dockerutil.NewLocalKeyringFromDockerContainer(ctx, cdc, cn.DockerClient, localDir, containerKeyringDir, cn.containerLifecycle.ContainerID())
 		if err != nil {
 			return client.Context{}, err
 		}

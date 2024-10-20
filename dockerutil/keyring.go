@@ -19,7 +19,7 @@ import (
 
 // NewLocalKeyringFromDockerContainer copies the contents of the given container directory into a specified local directory.
 // This allows test hosts to sign transactions on behalf of test users.
-func NewLocalKeyringFromDockerContainer(ctx context.Context, dc *client.Client, localDirectory, containerKeyringDir, containerID string) (keyring.Keyring, error) {
+func NewLocalKeyringFromDockerContainer(ctx context.Context, cdc *codec.ProtoCodec, dc *client.Client, localDirectory, containerKeyringDir, containerID string) (keyring.Keyring, error) {
 	reader, _, err := dc.CopyFromContainer(ctx, containerID, containerKeyringDir)
 	if err != nil {
 		return nil, err
@@ -56,9 +56,11 @@ func NewLocalKeyringFromDockerContainer(ctx context.Context, dc *client.Client, 
 		}
 	}
 
-	registry := codectypes.NewInterfaceRegistry()
-	cryptocodec.RegisterInterfaces(registry)
-	cdc := codec.NewProtoCodec(registry)
+	if cdc == nil {
+		registry := codectypes.NewInterfaceRegistry()
+		cryptocodec.RegisterInterfaces(registry)
+		cdc = codec.NewProtoCodec(registry)
+	}
 
 	return keyring.New("", keyring.BackendTest, localDirectory, os.Stdin, cdc)
 }
