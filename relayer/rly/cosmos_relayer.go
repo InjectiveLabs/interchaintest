@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/client"
 	"go.uber.org/zap"
@@ -58,6 +59,7 @@ type CosmosRelayerChainConfigValue struct {
 	RPCAddr          string   `json:"rpc-addr"`
 	SignMode         string   `json:"sign-mode"`
 	Timeout          string   `json:"timeout"`
+	MinLoopDuration time.Duration `json:"min-loop-duration"`
 }
 
 type CosmosRelayerChainConfig struct {
@@ -84,6 +86,23 @@ func ChainConfigToCosmosRelayerChainConfig(chainConfig ibc.ChainConfig, keyName,
 	if chainType == "polkadot" || chainType == "parachain" || chainType == "relaychain" {
 		chainType = "substrate"
 	}
+
+	var err error
+	loopDuration := time.Millisecond * 50
+	for _, env := range chainConfig.Env {
+		if strings.Contains(env, "ICTEST_RELAYER_LOOP_DURATION") {
+			e := strings.Split(env, "=")
+			if len(e) != 2 {
+				panic(fmt.Sprintf("BUG: failed to parse %s", env))
+			}
+
+			loopDuration, err = time.ParseDuration(e[1])
+			if err != nil {
+				panic(fmt.Sprintf("BUG: failed to parse %s: %s", e[1], err))
+			}
+		}
+	}
+
 	return CosmosRelayerChainConfig{
 		Type: chainType,
 		Value: CosmosRelayerChainConfigValue{
@@ -101,6 +120,7 @@ func ChainConfigToCosmosRelayerChainConfig(chainConfig ibc.ChainConfig, keyName,
 			Timeout:          "10s",
 			OutputFormat:     "json",
 			SignMode:         "direct",
+			MinLoopDuration: loopDuration,
 		},
 	}
 }
