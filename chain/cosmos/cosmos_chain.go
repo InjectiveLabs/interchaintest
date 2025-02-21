@@ -25,6 +25,7 @@ import (
 	chanTypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	ccvclient "github.com/cosmos/interchain-security/v5/x/ccv/provider/client"
 
+	injhd "github.com/InjectiveLabs/sdk-go/chain/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
@@ -326,12 +327,20 @@ func (c *CosmosChain) BuildRelayerWallet(ctx context.Context, keyName string) (i
 		return nil, fmt.Errorf("invalid coin type: %w", err)
 	}
 
+	// TODO: use target binary to generate a wallet, lol!
+	// Do not hardcode signing algo implementation there.
+
+	var algo keyring.SignatureAlgo = hd.Secp256k1
+	if c.cfg.SigningAlgorithm == "eth_secp256k1" {
+		algo = injhd.EthSecp256k1
+	}
+
 	info, mnemonic, err := c.keyring.NewMnemonic(
 		keyName,
 		keyring.English,
 		hd.CreateHDPath(uint32(coinType), 0, 0).String(),
 		"", // Empty passphrase.
-		hd.Secp256k1,
+		algo,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create mnemonic: %w", err)

@@ -458,7 +458,7 @@ injective:
   images:
     - repository: ghcr.io/strangelove-ventures/heighliner/injective
       uid-gid: 1025:1025
-  no-host-mount: true
+  no-host-mount: false
 
 irisnet:
   name: irisnet

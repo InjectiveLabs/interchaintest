@@ -246,6 +246,10 @@ func (c ChainConfig) MergeChainSpecConfig(other ChainConfig) ChainConfig {
 		c.KeyringOptions = other.KeyringOptions
 	}
 
+	if other.SigningAlgorithm != "" {
+		c.SigningAlgorithm = other.SigningAlgorithm
+	}
+
 	if len(other.SidecarConfigs) > 0 {
 		c.SidecarConfigs = append([]SidecarConfig(nil), other.SidecarConfigs...)
 	}

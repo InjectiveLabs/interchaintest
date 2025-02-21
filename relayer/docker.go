@@ -203,6 +203,7 @@ func (r *DockerRelayer) AddKey(ctx context.Context, rep ibc.RelayerExecReporter,
 	if err != nil {
 		return nil, err
 	}
+
 	r.wallets[chainID] = wallet
 	return wallet, nil
 }
@@ -342,10 +343,9 @@ func (r *DockerRelayer) RestoreKey(ctx context.Context, rep ibc.RelayerExecRepor
 	if res.Err != nil {
 		return res.Err
 	}
+
 	addrBytes := r.c.ParseRestoreKeyOutput(string(res.Stdout), string(res.Stderr))
-
-	r.wallets[chainID] = r.c.CreateWallet("", addrBytes, mnemonic)
-
+	r.wallets[chainID] = r.c.CreateWallet(keyName, addrBytes, mnemonic)
 	return nil
 }
 
