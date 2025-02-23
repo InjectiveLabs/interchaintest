@@ -1,10 +1,13 @@
 package dockerutil
 
 import (
+	"archive/tar"
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -68,12 +71,12 @@ func DockerSetup(t DockerSetupTestingT) (*client.Client, string) {
 		panic(fmt.Errorf("failed to create docker client: %v", err))
 	}
 
-	// Clean up docker resources at end of test.
-	t.Cleanup(DockerCleanup(t, cli))
+	// Clean up docker resources at end of test, if enabled also collects coverage data.
+	t.Cleanup(DockerCleanup(t, cli, DockerExportCoverageDataFn(t, cli)))
 
 	// Also eagerly clean up any leftover resources from a previous test run,
-	// e.g. if the test was interrupted.
-	DockerCleanup(t, cli)()
+	// e.g. if the test was interrupted. No coverage data is exported in this case.
+	DockerCleanup(t, cli, nil)()
 
 	name := fmt.Sprintf("%s-%s", ICTDockerPrefix, RandLowerCaseLetterString(8))
 	network, err := cli.NetworkCreate(context.TODO(), name, types.NetworkCreate{
@@ -88,8 +91,114 @@ func DockerSetup(t DockerSetupTestingT) (*client.Client, string) {
 	return cli, network.ID
 }
 
+// DockerExportCoverageData guarantees the cleanup, but also exports coverage data from the containers beforehand.
+func DockerExportCoverageDataFn(t DockerSetupTestingT, cli *client.Client) func() {
+	return func() {
+		defer func() {
+			if e := recover(); e != nil {
+				t.Logf("Failed to export coverage data: %v", e)
+				return
+			}
+		}()
+
+		outCoverageDataDir := os.Getenv("ICTEST_GOCOVERDIR")
+		if outCoverageDataDir == "" {
+			outCoverageDataDir = "coverage/" + t.Name()
+		}
+
+		ctx := context.TODO()
+		cli.NegotiateAPIVersion(ctx)
+		cs, err := cli.ContainerList(ctx, types.ContainerListOptions{
+			All: true,
+			Filters: filters.NewArgs(
+				filters.Arg("label", CleanupLabel+"="+t.Name()),
+			),
+		})
+		if err != nil {
+			t.Logf("Failed to list containers during docker export coverage data: %v", err)
+			return
+		}
+
+		for _, c := range cs {
+			var coverageDataDir string
+
+			// Get GOCOVERDIR environment variable from container
+			containerInspect, err := cli.ContainerInspect(ctx, c.ID)
+			if err != nil {
+				t.Logf("Failed to inspect container %s: %v", c.ID, err)
+				continue
+			}
+
+			for _, env := range containerInspect.Config.Env {
+				if strings.HasPrefix(env, "GOCOVERDIR=") {
+					coverageDataDir = strings.TrimPrefix(env, "GOCOVERDIR=")
+					break
+				}
+			}
+
+			// coverage data not enabled for export
+			if coverageDataDir == "" {
+				continue
+			}
+
+			containerName := c.ID[:12]
+			if len(c.Names) > 0 {
+				containerName = c.Names[0]
+			}
+
+			t.Logf("Exporting coverage data %s from container %s", coverageDataDir, containerName)
+
+			// Copy coverage data from container to local filesystem
+			reader, _, err := cli.CopyFromContainer(ctx, c.ID, coverageDataDir)
+			if err != nil {
+				t.Logf("Failed to copy coverage data from container %s: %v", c.ID, err)
+				continue
+			}
+			defer reader.Close()
+
+			// Create full path for coverage data
+			containerCoverageDataDir := filepath.Join(outCoverageDataDir, containerName)
+			if err := os.MkdirAll(containerCoverageDataDir, 0755); err != nil {
+				t.Logf("Failed to create coverage data directory for container %s: %v", c.ID, err)
+				continue
+			}
+
+			// Extract the tar archive containing coverage data
+			tr := tar.NewReader(reader)
+			for {
+				header, err := tr.Next()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					t.Logf("Failed to read tar header from container %s: %v", c.ID, err)
+					break
+				}
+
+				// Skip directories
+				if header.Typeflag == tar.TypeDir {
+					continue
+				}
+
+				// Create coverage data file
+				outPath := filepath.Join(containerCoverageDataDir, filepath.Base(header.Name))
+				outFile, err := os.Create(outPath)
+				if err != nil {
+					t.Logf("Failed to create coverage data file %s: %v", outPath, err)
+					continue
+				}
+				defer outFile.Close()
+
+				if _, err := io.Copy(outFile, tr); err != nil {
+					t.Logf("Failed to write coverage data file %s: %v", outPath, err)
+				}
+			}
+		}
+	}
+}
+
 // DockerCleanup will clean up Docker containers, networks, and the other various config files generated in testing.
-func DockerCleanup(t DockerSetupTestingT, cli *client.Client) func() {
+func DockerCleanup(t DockerSetupTestingT, cli *client.Client, preRemoveCallback func()) func() {
 	return func() {
 		showContainerLogs := os.Getenv("SHOW_CONTAINER_LOGS")
 		containerLogTail := os.Getenv("CONTAINER_LOG_TAIL")
@@ -151,6 +260,11 @@ func DockerCleanup(t DockerSetupTestingT, cli *client.Client) func() {
 					// Ignoring statuscode for now.
 				}
 				cancel()
+
+				// Export coverage data from the container before removing it.
+				if preRemoveCallback != nil {
+					preRemoveCallback()
+				}
 
 				if err := cli.ContainerRemove(ctx, c.ID, types.ContainerRemoveOptions{
 					// Not removing volumes with the container, because we separately handle them conditionally.
