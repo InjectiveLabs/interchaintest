@@ -221,6 +221,7 @@ func BroadcastTx(ctx context.Context, broadcaster *Broadcaster, broadcastingUser
 		var err error
 		txBytes, err = broadcaster.GetTxResponseBytes(ctx, broadcastingUser)
 		if err != nil {
+			broadcaster.t.Logf("error getting tx response bytes: %s", err)
 			return false, nil
 		}
 		return true, nil
@@ -234,17 +235,18 @@ func BroadcastTx(ctx context.Context, broadcaster *Broadcaster, broadcastingUser
 		return sdk.TxResponse{}, err
 	}
 
-	return getFullyPopulatedResponse(cc, respWithTxHash.TxHash)
+	return broadcaster.getFullyPopulatedResponse(cc, respWithTxHash.TxHash)
 }
 
 // getFullyPopulatedResponse returns a fully populated sdk.TxResponse.
 // the QueryTx function is periodically called until a tx with the given hash
 // has been included in a block.
-func getFullyPopulatedResponse(cc client.Context, txHash string) (sdk.TxResponse, error) {
+func (b *Broadcaster) getFullyPopulatedResponse(cc client.Context, txHash string) (sdk.TxResponse, error) {
 	var resp sdk.TxResponse
 	err := testutil.WaitForCondition(time.Second*60, time.Second*5, func() (bool, error) {
 		fullyPopulatedTxResp, err := authtx.QueryTx(cc, txHash)
 		if err != nil {
+			b.t.Logf("error querying tx: %s", err)
 			return false, nil
 		}
 

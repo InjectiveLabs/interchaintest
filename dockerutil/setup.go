@@ -219,7 +219,7 @@ func DockerCleanup(t DockerSetupTestingT, cli *client.Client, preRemoveCallback 
 
 		for _, c := range cs {
 			if (t.Failed() && showContainerLogs == "") || showContainerLogs == "always" {
-				logTail := "50"
+				logTail := "1000"
 				if containerLogTail != "" {
 					logTail = containerLogTail
 				}
