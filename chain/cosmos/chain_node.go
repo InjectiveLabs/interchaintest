@@ -54,17 +54,18 @@ import (
 
 // ChainNode represents a node in the test network that is being created.
 type ChainNode struct {
-	VolumeName   string
-	Index        int
-	Chain        ibc.Chain
-	Validator    bool
-	NetworkID    string
-	DockerClient *dockerclient.Client
-	Client       rpcclient.Client
-	GrpcConn     *grpc.ClientConn
-	TestName     string
-	Image        ibc.DockerImage
-	preStartNode func(*ChainNode)
+	VolumeName    string
+	Index         int
+	Chain         ibc.Chain
+	Validator     bool
+	NetworkID     string
+	DockerClient  *dockerclient.Client
+	Client        rpcclient.Client
+	GrpcConn      *grpc.ClientConn
+	TestName      string
+	Image         ibc.DockerImage
+	preCreateNode func(*ChainNode, *ibc.ChainConfig)
+	preStartNode  func(*ChainNode)
 
 	// Additional processes that need to be run on a per-validator basis.
 	Sidecars SidecarProcesses
@@ -107,6 +108,12 @@ func NewChainNode(log *zap.Logger, validator bool, chain *CosmosChain, dockerCli
 // WithPreStartNode sets the preStartNode function for the ChainNode.
 func (tn *ChainNode) WithPreStartNode(preStartNode func(*ChainNode)) *ChainNode {
 	tn.preStartNode = preStartNode
+	return tn
+}
+
+// WithPreCreateNode sets the preCreateNode function for the ChainNode.
+func (tn *ChainNode) WithPreCreateNode(preCreateNode func(*ChainNode, *ibc.ChainConfig)) *ChainNode {
+	tn.preCreateNode = preCreateNode
 	return tn
 }
 
@@ -1106,6 +1113,10 @@ func (tn *ChainNode) UnsafeResetAll(ctx context.Context) error {
 
 func (tn *ChainNode) CreateNodeContainer(ctx context.Context) error {
 	chainCfg := tn.Chain.Config()
+
+	if tn.preCreateNode != nil {
+		tn.preCreateNode(tn, &chainCfg)
+	}
 
 	var cmd []string
 	if chainCfg.NoHostMount {

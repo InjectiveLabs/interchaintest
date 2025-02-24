@@ -60,6 +60,10 @@ type CosmosChain struct {
 	// they are all started
 	preStartNodes func(*CosmosChain)
 
+	// preCreateNodes is able to mutate the node containers before
+	// they are all created
+	preCreateNodes func(*CosmosChain, *ibc.ChainConfig)
+
 	// Additional processes that need to be run on a per-chain basis.
 	Sidecars SidecarProcesses
 
@@ -134,6 +138,11 @@ func NewCosmosChain(testName string, chainConfig ibc.ChainConfig, numValidators 
 // WithPreStartNodes sets the preStartNodes function.
 func (c *CosmosChain) WithPreStartNodes(preStartNodes func(*CosmosChain)) {
 	c.preStartNodes = preStartNodes
+}
+
+// WithPreCreateNodes sets the preCreateNodes function.
+func (c *CosmosChain) WithPreCreateNodes(preCreateNodes func(*CosmosChain, *ibc.ChainConfig)) {
+	c.preCreateNodes = preCreateNodes
 }
 
 // GetCodec returns the codec for the chain.
@@ -853,6 +862,10 @@ func (c *CosmosChain) Start(testName string, ctx context.Context, additionalGene
 	}
 
 	chainCfg := c.Config()
+
+	if c.preCreateNodes != nil {
+		c.preCreateNodes(c, &chainCfg)
+	}
 
 	decimalPow := int64(math.Pow10(int(*chainCfg.CoinDecimals)))
 

@@ -50,6 +50,10 @@ type Thorchain struct {
 	// they are all started
 	preStartNodes func(*Thorchain)
 
+	// preCreateNodes is able to mutate the node containers before
+	// they are all created
+	preCreateNodes func(*Thorchain)
+
 	// Additional processes that need to be run on a per-chain basis.
 	Sidecars SidecarProcesses
 
@@ -128,6 +132,11 @@ func NewThorchain(testName string, chainConfig ibc.ChainConfig, numValidators in
 // WithPreStartNodes sets the preStartNodes function.
 func (c *Thorchain) WithPreStartNodes(preStartNodes func(*Thorchain)) {
 	c.preStartNodes = preStartNodes
+}
+
+// WithPreCreateNodes sets the preCreateNodes function.
+func (c *Thorchain) WithPreCreateNodes(preCreateNodes func(*Thorchain)) {
+	c.preCreateNodes = preCreateNodes
 }
 
 // GetCodec returns the codec for the chain.

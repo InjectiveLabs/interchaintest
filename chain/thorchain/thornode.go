@@ -49,17 +49,18 @@ import (
 )
 
 type ChainNode struct {
-	VolumeName   string
-	Index        int
-	Chain        ibc.Chain
-	Validator    bool
-	NetworkID    string
-	DockerClient *dockerclient.Client
-	Client       rpcclient.Client
-	GrpcConn     *grpc.ClientConn
-	TestName     string
-	Image        ibc.DockerImage
-	preStartNode func(*ChainNode)
+	VolumeName    string
+	Index         int
+	Chain         ibc.Chain
+	Validator     bool
+	NetworkID     string
+	DockerClient  *dockerclient.Client
+	Client        rpcclient.Client
+	GrpcConn      *grpc.ClientConn
+	TestName      string
+	Image         ibc.DockerImage
+	preStartNode  func(*ChainNode)
+	preCreateNode func(*ChainNode, *ibc.ChainConfig)
 
 	// Env
 	ValidatorMnemonic string // SIGNER_SEED_PHRASE
@@ -104,6 +105,12 @@ func NewChainNode(log *zap.Logger, validator bool, chain *Thorchain, dockerClien
 // WithPreStartNode sets the preStartNode function for the ChainNode.
 func (tn *ChainNode) WithPreStartNode(preStartNode func(*ChainNode)) *ChainNode {
 	tn.preStartNode = preStartNode
+	return tn
+}
+
+// WithPreCreateNode sets the preCreateNode function for the ChainNode.
+func (tn *ChainNode) WithPreCreateNode(preCreateNode func(*ChainNode, *ibc.ChainConfig)) *ChainNode {
+	tn.preCreateNode = preCreateNode
 	return tn
 }
 
