@@ -210,6 +210,11 @@ func (c *Thorchain) Config() ibc.ChainConfig {
 	return c.cfg
 }
 
+// SetConfig sets the chain configuration.
+func (c *Thorchain) SetConfig(config ibc.ChainConfig) {
+	c.cfg = config
+}
+
 // Implements Chain interface.
 func (c *Thorchain) Initialize(ctx context.Context, testName string, cli *client.Client, networkID string) error {
 	if err := c.initializeSidecars(ctx, testName, cli, networkID); err != nil {

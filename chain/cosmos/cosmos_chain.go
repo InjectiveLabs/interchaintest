@@ -217,6 +217,11 @@ func (c *CosmosChain) Config() ibc.ChainConfig {
 }
 
 // Implements Chain interface.
+func (c *CosmosChain) SetConfig(config ibc.ChainConfig) {
+	c.cfg = config
+}
+
+// Implements Chain interface.
 func (c *CosmosChain) Initialize(ctx context.Context, testName string, cli *client.Client, networkID string) error {
 	if err := c.initializeSidecars(ctx, testName, cli, networkID); err != nil {
 		return err

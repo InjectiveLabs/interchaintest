@@ -12,6 +12,9 @@ type Chain interface {
 	// Config fetches the chain configuration.
 	Config() ChainConfig
 
+	// SetConfig sets the chain configuration.
+	SetConfig(config ChainConfig)
+
 	// Initialize initializes node structs so that things like initializing keys can be done before starting the chain
 	Initialize(ctx context.Context, testName string, cli *client.Client, networkID string) error
 

@@ -106,6 +106,11 @@ func (c *UtxoChain) Config() ibc.ChainConfig {
 	return c.cfg
 }
 
+// SetConfig sets the chain configuration.
+func (c *UtxoChain) SetConfig(config ibc.ChainConfig) {
+	c.cfg = config
+}
+
 func (c *UtxoChain) Initialize(ctx context.Context, testName string, cli *dockerclient.Client, networkID string) error {
 	chainCfg := c.Config()
 	c.pullImages(ctx, cli)

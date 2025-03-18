@@ -106,6 +106,11 @@ func (c *PenumbraChain) Config() ibc.ChainConfig {
 	return c.cfg
 }
 
+// SetConfig sets the chain configuration.
+func (c *PenumbraChain) SetConfig(config ibc.ChainConfig) {
+	c.cfg = config
+}
+
 // Initialize creates the test node objects required for bootstrapping tests.
 func (c *PenumbraChain) Initialize(ctx context.Context, testName string, cli *client.Client, networkID string) error {
 	return c.initializeChainNodes(ctx, testName, cli, networkID)

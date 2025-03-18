@@ -64,6 +64,10 @@ func (c *EthereumChain) Config() ibc.ChainConfig {
 	return c.cfg
 }
 
+func (c *EthereumChain) SetConfig(config ibc.ChainConfig) {
+	c.cfg = config
+}
+
 func (c *EthereumChain) Initialize(ctx context.Context, testName string, cli *dockerclient.Client, networkID string) error {
 	chainCfg := c.Config()
 	c.pullImages(ctx, cli)

@@ -99,6 +99,11 @@ func (c *PolkadotChain) Config() ibc.ChainConfig {
 	return c.cfg
 }
 
+// SetConfig sets the chain configuration.
+func (c *PolkadotChain) SetConfig(config ibc.ChainConfig) {
+	c.cfg = config
+}
+
 func (c *PolkadotChain) NewRelayChainNode(
 	ctx context.Context,
 	i int,
