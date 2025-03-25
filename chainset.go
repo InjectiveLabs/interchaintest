@@ -14,7 +14,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/strangelove-ventures/interchaintest/v8/blockdb"
-	"github.com/strangelove-ventures/interchaintest/v8/chain/cosmos"
 	"github.com/strangelove-ventures/interchaintest/v8/ibc"
 )
 
@@ -108,21 +107,8 @@ func (cs *chainSet) Start(ctx context.Context, testName string, additionalGenesi
 	eg, egCtx := errgroup.WithContext(ctx)
 
 	for c := range cs.chains {
-		if cosmosChain, ok := c.(*cosmos.CosmosChain); ok && cosmosChain.Provider != nil {
-			// wait for provider chains to be started up first
-			continue
-		}
 		eg.Go(func() error {
 			chainCfg := c.Config()
-			if cosmosChain, ok := c.(*cosmos.CosmosChain); ok {
-				if len(cosmosChain.Consumers) > 0 {
-					// this is a provider chain
-					if err := cosmosChain.StartProvider(testName, egCtx, additionalGenesisWallets[c]...); err != nil {
-						return fmt.Errorf("failed to start provider chain %s: %w", chainCfg.Name, err)
-					}
-					return nil
-				}
-			}
 
 			// standard chain startup
 			if err := c.Start(testName, egCtx, additionalGenesisWallets[c]...); err != nil {
@@ -132,25 +118,7 @@ func (cs *chainSet) Start(ctx context.Context, testName string, additionalGenesi
 			return nil
 		})
 	}
-	if err := eg.Wait(); err != nil {
-		return err
-	}
 
-	eg, egCtx = errgroup.WithContext(ctx)
-
-	// Now startup any consumer chains
-	for c := range cs.chains {
-		if cosmosChain, ok := c.(*cosmos.CosmosChain); ok && cosmosChain.Provider != nil {
-			eg.Go(func() error {
-				// this is a consumer chain
-				if err := cosmosChain.StartConsumer(testName, egCtx, additionalGenesisWallets[c]...); err != nil {
-					return fmt.Errorf("failed to start consumer chain %s: %w", c.Config().Name, err)
-				}
-
-				return nil
-			})
-		}
-	}
 	return eg.Wait()
 }
 

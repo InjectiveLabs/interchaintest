@@ -23,7 +23,6 @@ import (
 
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types" // nolint:staticcheck
 	chanTypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
-	ccvclient "github.com/cosmos/interchain-security/v5/x/ccv/provider/client"
 
 	injhd "github.com/InjectiveLabs/sdk-go/chain/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -536,15 +535,6 @@ func (c *CosmosChain) QueryParam(ctx context.Context, subspace, key string) (*Pa
 // QueryBankMetadata returns the metadata of a given token denomination.
 func (c *CosmosChain) QueryBankMetadata(ctx context.Context, denom string) (*BankMetaData, error) {
 	return c.GetFullNode().QueryBankMetadata(ctx, denom)
-}
-
-// ConsumerAdditionProposal submits a legacy governance proposal to add a consumer to the chain.
-func (c *CosmosChain) ConsumerAdditionProposal(ctx context.Context, keyName string, prop ccvclient.ConsumerAdditionProposalJSON) (tx TxProposal, _ error) {
-	txHash, err := c.GetFullNode().ConsumerAdditionProposal(ctx, keyName, prop)
-	if err != nil {
-		return tx, fmt.Errorf("failed to submit consumer addition proposal: %w", err)
-	}
-	return c.txProposal(txHash)
 }
 
 func (c *CosmosChain) txProposal(txHash string) (tx TxProposal, _ error) {
