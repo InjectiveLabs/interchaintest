@@ -29,7 +29,6 @@ const (
 	Parachain  = "parachain"
 	RelayChain = "relaychain"
 	Cosmos     = "cosmos"
-	Penumbra   = "penumbra"
 	Ethereum   = "ethereum"
 	Thorchain  = "thorchain"
 	UTXO       = "utxo"
