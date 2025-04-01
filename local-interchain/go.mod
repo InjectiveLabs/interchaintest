@@ -19,6 +19,7 @@ require (
 	cosmossdk.io/math v1.3.0
 	github.com/cosmos/cosmos-sdk v0.50.9
 	github.com/cosmos/go-bip39 v1.0.0
+	github.com/moby/moby v27.5.1+incompatible
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/handlers v1.5.2
@@ -105,7 +106,7 @@ require (
 	github.com/dgraph-io/badger/v4 v4.2.0 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/docker/distribution v2.8.2+incompatible // indirect
-	github.com/docker/docker v24.0.9+incompatible // indirect
+	github.com/docker/docker v27.5.1+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect

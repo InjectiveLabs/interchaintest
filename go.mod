@@ -25,7 +25,7 @@ require (
 	github.com/cosmos/ibc-go/v8 v8.6.1
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/decred/dcrd/dcrec/secp256k1/v2 v2.0.1
-	github.com/docker/docker v24.0.9+incompatible
+	github.com/docker/docker v27.5.1+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/ethereum/go-ethereum v1.15.7
 	github.com/gdamore/tcell/v2 v2.7.4
@@ -36,6 +36,7 @@ require (
 	github.com/icza/dyno v0.0.0-20220812133438-f0b6f8a18845
 	github.com/libp2p/go-libp2p v0.31.0
 	github.com/misko9/go-substrate-rpc-client/v4 v4.0.0-20240603204351-26b456ae3afe
+	github.com/moby/moby v27.5.1+incompatible
 	github.com/mr-tron/base58 v1.2.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/pelletier/go-toml/v2 v2.2.3

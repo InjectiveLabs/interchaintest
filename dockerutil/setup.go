@@ -6,17 +6,19 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/rand"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/avast/retry-go/v4"
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/client"
-	"github.com/docker/docker/errdefs"
+	"github.com/docker/docker/api/types/network"
+	"github.com/moby/moby/client"
+	"github.com/moby/moby/errdefs"
 )
 
 // DockerSetupTestingT is a subset of testing.T required for DockerSetup.
@@ -79,8 +81,25 @@ func DockerSetup(t DockerSetupTestingT) (*client.Client, string) {
 	DockerCleanup(t, cli, nil)()
 
 	name := fmt.Sprintf("%s-%s", ICTDockerPrefix, RandLowerCaseLetterString(8))
-	network, err := cli.NetworkCreate(context.TODO(), name, types.NetworkCreate{
-		CheckDuplicate: true,
+	octet := uint8(rand.Intn(256))
+	baseSubnet := fmt.Sprintf("172.%d.0.0/16", octet)
+	usedSubnets, err := getUsedSubnets(cli)
+	if err != nil {
+		panic(fmt.Errorf("failed to get used subnets: %v", err))
+	}
+	subnet, err := findAvailableSubnet(baseSubnet, usedSubnets)
+	if err != nil {
+		panic(fmt.Errorf("failed to find an available subnet: %v", err))
+	}
+	network, err := cli.NetworkCreate(context.TODO(), name, network.CreateOptions{
+		Driver: "bridge",
+		IPAM: &network.IPAM{
+			Config: []network.IPAMConfig{
+				{
+					Subnet: subnet,
+				},
+			},
+		},
 
 		Labels: map[string]string{CleanupLabel: t.Name()},
 	})
@@ -89,6 +108,77 @@ func DockerSetup(t DockerSetupTestingT) (*client.Client, string) {
 	}
 
 	return cli, network.ID
+}
+
+func getUsedSubnets(cli *client.Client) (map[string]bool, error) {
+	usedSubnets := make(map[string]bool)
+	networks, err := cli.NetworkList(context.TODO(), network.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, net := range networks {
+		for _, config := range net.IPAM.Config {
+			if config.Subnet != "" {
+				usedSubnets[config.Subnet] = true
+			}
+		}
+	}
+	return usedSubnets, nil
+}
+
+func findAvailableSubnet(baseSubnet string, usedSubnets map[string]bool) (string, error) {
+	ip, ipNet, err := net.ParseCIDR(baseSubnet)
+	if err != nil {
+		return "", fmt.Errorf("invalid base subnet: %v", err)
+	}
+
+	for {
+		if isSubnetUsed(ipNet.String(), usedSubnets) {
+			incrementIP(ip, 2)
+			ipNet.IP = ip
+			continue
+		}
+
+		for subIP := ip.Mask(ipNet.Mask); ipNet.Contains(subIP); incrementIP(subIP, 1) {
+			subnet := fmt.Sprintf("%s/24", subIP)
+
+			if !isSubnetUsed(subnet, usedSubnets) {
+				return subnet, nil
+			}
+		}
+
+		incrementIP(ip, 2)
+		ipNet.IP = ip
+	}
+}
+
+func isSubnetUsed(subnet string, usedSubnets map[string]bool) bool {
+	_, targetNet, err := net.ParseCIDR(subnet)
+	if err != nil {
+		return true
+	}
+
+	for usedSubnet := range usedSubnets {
+		_, usedNet, err := net.ParseCIDR(usedSubnet)
+		if err != nil {
+			continue
+		}
+
+		if usedNet.Contains(targetNet.IP) || targetNet.Contains(usedNet.IP) {
+			return true
+		}
+	}
+	return false
+}
+
+func incrementIP(ip net.IP, incrementLevel int) {
+	for j := len(ip) - incrementLevel; j >= 0; j-- {
+		ip[j]++
+		if ip[j] > 0 {
+			break
+		}
+	}
 }
 
 // DockerExportCoverageData guarantees the cleanup, but also exports coverage data from the containers beforehand.
@@ -108,7 +198,7 @@ func DockerExportCoverageDataFn(t DockerSetupTestingT, cli *client.Client) func(
 
 		ctx := context.TODO()
 		cli.NegotiateAPIVersion(ctx)
-		cs, err := cli.ContainerList(ctx, types.ContainerListOptions{
+		cs, err := cli.ContainerList(ctx, container.ListOptions{
 			All: true,
 			Filters: filters.NewArgs(
 				filters.Arg("label", CleanupLabel+"="+t.Name()),
@@ -206,7 +296,7 @@ func DockerCleanup(t DockerSetupTestingT, cli *client.Client, preRemoveCallback 
 
 		ctx := context.TODO()
 		cli.NegotiateAPIVersion(ctx)
-		cs, err := cli.ContainerList(ctx, types.ContainerListOptions{
+		cs, err := cli.ContainerList(ctx, container.ListOptions{
 			All: true,
 			Filters: filters.NewArgs(
 				filters.Arg("label", CleanupLabel+"="+t.Name()),
@@ -223,7 +313,7 @@ func DockerCleanup(t DockerSetupTestingT, cli *client.Client, preRemoveCallback 
 				if containerLogTail != "" {
 					logTail = containerLogTail
 				}
-				rc, err := cli.ContainerLogs(ctx, c.ID, types.ContainerLogsOptions{
+				rc, err := cli.ContainerLogs(ctx, c.ID, container.LogsOptions{
 					ShowStdout: true,
 					ShowStderr: true,
 					Tail:       logTail,
@@ -266,7 +356,7 @@ func DockerCleanup(t DockerSetupTestingT, cli *client.Client, preRemoveCallback 
 					preRemoveCallback()
 				}
 
-				if err := cli.ContainerRemove(ctx, c.ID, types.ContainerRemoveOptions{
+				if err := cli.ContainerRemove(ctx, c.ID, container.RemoveOptions{
 					// Not removing volumes with the container, because we separately handle them conditionally.
 					Force: true,
 				}); err != nil {

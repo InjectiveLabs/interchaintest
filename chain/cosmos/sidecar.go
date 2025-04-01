@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/docker/docker/api/types/mount"
-	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
+	dockerclient "github.com/moby/moby/client"
 	"go.uber.org/zap"
 
 	"github.com/strangelove-ventures/interchaintest/v8/dockerutil"
