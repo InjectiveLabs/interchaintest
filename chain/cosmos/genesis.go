@@ -12,14 +12,24 @@ import (
 )
 
 type GenesisKV struct {
-	Key   string      `json:"key"`
-	Value interface{} `json:"value"`
+	Key    string      `json:"key"`
+	Value  interface{} `json:"value"`
+	Append bool        `json:"append"`
 }
 
 func NewGenesisKV(key string, value interface{}) GenesisKV {
 	return GenesisKV{
-		Key:   key,
-		Value: value,
+		Key:    key,
+		Value:  value,
+		Append: false,
+	}
+}
+
+func NewGenesisKVAppend(key string, value interface{}) GenesisKV {
+	return GenesisKV{
+		Key:    key,
+		Value:  value,
+		Append: true,
 	}
 }
 
@@ -42,8 +52,14 @@ func ModifyGenesis(genesisKV []GenesisKV) func(ibc.ChainConfig, []byte) ([]byte,
 				}
 			}
 
-			if err := dyno.Set(g, values.Value, path...); err != nil {
-				return nil, fmt.Errorf("failed to set key '%s' as '%+v' (index:%d) in genesis json: %w", values.Key, values.Value, idx, err)
+			if values.Append {
+				if err := dyno.Append(g, values.Value, path...); err != nil {
+					return nil, fmt.Errorf("failed to append to key '%s' value '%+v' (index:%d) in genesis json: %w", values.Key, values.Value, idx, err)
+				}
+			} else {
+				if err := dyno.Set(g, values.Value, path...); err != nil {
+					return nil, fmt.Errorf("failed to set key '%s' as '%+v' (index:%d) in genesis json: %w", values.Key, values.Value, idx, err)
+				}
 			}
 		}
 
