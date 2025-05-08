@@ -14,7 +14,6 @@ import (
 	"github.com/strangelove-ventures/interchaintest/v8/chain/cosmos"
 	"github.com/strangelove-ventures/interchaintest/v8/chain/ethereum/foundry"
 	"github.com/strangelove-ventures/interchaintest/v8/chain/ethereum/geth"
-	"github.com/strangelove-ventures/interchaintest/v8/chain/penumbra"
 	"github.com/strangelove-ventures/interchaintest/v8/chain/polkadot"
 	"github.com/strangelove-ventures/interchaintest/v8/chain/thorchain"
 	"github.com/strangelove-ventures/interchaintest/v8/chain/utxo"
@@ -137,8 +136,6 @@ func buildChain(log *zap.Logger, testName string, cfg ibc.ChainConfig, numValida
 	switch cfg.Type {
 	case ibc.Cosmos:
 		return cosmos.NewCosmosChain(testName, cfg, nv, nf, log), nil
-	case ibc.Penumbra:
-		return penumbra.NewPenumbraChain(log, testName, cfg, nv, nf), nil
 	case ibc.Polkadot:
 		// TODO Clean this up. RelayChain config should only reference cfg.Images[0] and parachains should iterate through the remaining
 		// Maybe just pass everything in like NewCosmosChain and NewPenumbraChain, let NewPolkadotChain figure it out
