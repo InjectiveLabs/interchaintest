@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/docker/docker/api/types/mount"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"go.uber.org/zap"
@@ -38,6 +39,7 @@ type SidecarProcess struct {
 	ports        nat.PortMap
 	startCmd     []string
 	env          []string
+	mounts       []mount.Mount
 	homeDir      string
 
 	containerLifecycle *dockerutil.ContainerLifecycle
@@ -106,8 +108,12 @@ func (s *SidecarProcess) logger() *zap.Logger {
 	)
 }
 
+func (s *SidecarProcess) WithDockerMounts(mounts ...mount.Mount) {
+	s.mounts = append(s.mounts, mounts...)
+}
+
 func (s *SidecarProcess) CreateContainer(ctx context.Context) error {
-	return s.containerLifecycle.CreateContainer(ctx, s.TestName, s.NetworkID, s.Image, s.ports, s.Bind(), nil, s.HostName(), s.startCmd, s.env, []string{})
+	return s.containerLifecycle.CreateContainer(ctx, s.TestName, s.NetworkID, s.Image, s.ports, s.Bind(), s.mounts, s.HostName(), s.startCmd, s.env, []string{})
 }
 
 func (s *SidecarProcess) StartContainer(ctx context.Context) error {
