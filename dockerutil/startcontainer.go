@@ -4,21 +4,31 @@ import (
 	"context"
 	"time"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
+
+const dockerCliStartMandatoryDeadline = 30 * time.Second
+const dockerCliStartRetries = 50
+const dockerCliStartDelay = 500 * time.Millisecond
 
 // StartContainer attempts to start the container with the given ID.
 func StartContainer(ctx context.Context, cli *client.Client, id string) error {
 	// add a deadline for the request if the calling context does not provide one
 	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
 		var cancel func()
-		ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
+		ctx, cancel = context.WithTimeout(ctx, dockerCliStartMandatoryDeadline)
 		defer cancel()
 	}
 
-	err := cli.ContainerStart(ctx, id, types.ContainerStartOptions{})
-	if err != nil {
+	if err := retry.Do(func() error {
+		return cli.ContainerStart(ctx, id, types.ContainerStartOptions{})
+	},
+		retry.Attempts(dockerCliStartRetries),
+		retry.Delay(dockerCliStartDelay),
+		retry.Context(ctx),
+	); err != nil {
 		return err
 	}
 
