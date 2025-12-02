@@ -42,7 +42,6 @@ func OpenListener(port int) (*net.TCPListener, error) {
 // This allows multiple GetPort calls to find multiple available ports
 // before closing them so they are available for the PortBinding.
 func GetPort(port int) (nat.PortBinding, *net.TCPListener, error) {
-	port = 0 // always get next available port
 	l, err := OpenListener(port)
 	if err != nil {
 		l.Close()

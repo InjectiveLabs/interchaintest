@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/avast/retry-go/v4"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -125,6 +126,14 @@ func (c *ContainerLifecycle) StartContainer(ctx context.Context) error {
 
 	c.preStartListeners.CloseAll()
 	c.preStartListeners = []net.Listener{}
+
+	startFn := func() error {
+		return StartContainer(ctx, c.client, c.id)
+	}
+
+	if err := retry.Do(startFn, retry.Attempts(42), retry.Delay(500*time.Millisecond)); err != nil {
+		return err
+	}
 
 	if err := StartContainer(ctx, c.client, c.id); err != nil {
 		return err
