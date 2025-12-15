@@ -43,7 +43,10 @@ func OpenListener(port int) (*net.TCPListener, error) {
 func GetPort(port int) (nat.PortBinding, *net.TCPListener, error) {
 	l, err := OpenListener(port)
 	if err != nil {
-		l.Close()
+		if l != nil {
+			_ = l.Close()
+		}
+
 		return nat.PortBinding{}, nil, err
 	}
 
