@@ -3,7 +3,6 @@ package dockerutil
 import (
 	"fmt"
 	"net"
-	"strconv"
 	"sync"
 
 	"github.com/docker/go-connections/nat"
@@ -44,7 +43,10 @@ func OpenListener(port int) (*net.TCPListener, error) {
 func GetPort(port int) (nat.PortBinding, *net.TCPListener, error) {
 	l, err := OpenListener(port)
 	if err != nil {
-		l.Close()
+		if l != nil {
+			_ = l.Close()
+		}
+
 		return nat.PortBinding{}, nil, err
 	}
 
@@ -66,17 +68,22 @@ func GeneratePortBindings(pairs nat.PortMap) (nat.PortMap, Listeners, error) {
 	var err error
 
 	for p, bind := range pairs {
-		if len(bind) == 0 {
-			// random port
-			pb, l, err = GetPort(0)
-		} else {
-			var pNum int
-			if pNum, err = strconv.Atoi(bind[0].HostPort); err != nil {
-				return nat.PortMap{}, nil, err
-			}
+		_ = bind
 
-			pb, l, err = GetPort(pNum)
-		}
+		// ALWAYS a random port
+		pb, l, err = GetPort(0)
+
+		// if len(bind) == 0 {
+		// 	// random port
+		// 	pb, l, err = GetPort(0)
+		// } else {
+		// 	var pNum int
+		// 	if pNum, err = strconv.Atoi(bind[0].HostPort); err != nil {
+		// 		return nat.PortMap{}, nil, err
+		// 	}
+
+		// 	pb, l, err = GetPort(pNum)
+		// }
 
 		if err != nil {
 			listeners.CloseAll()
