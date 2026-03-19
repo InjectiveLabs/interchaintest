@@ -51,7 +51,7 @@ func (r *FileRetriever) SingleFileContent(ctx context.Context, volumeName, relPa
 		},
 		&container.HostConfig{
 			Binds:      []string{volumeName + ":" + mountPath},
-			AutoRemove: true,
+			AutoRemove: false,
 		},
 		nil, // No networking necessary.
 		nil,
@@ -62,9 +62,7 @@ func (r *FileRetriever) SingleFileContent(ctx context.Context, volumeName, relPa
 	}
 
 	defer func() {
-		if err := r.cli.ContainerRemove(ctx, cc.ID, container.RemoveOptions{
-			Force: true,
-		}); err != nil {
+		if err := removeContainerBestEffort(ctx, r.cli, cc.ID); err != nil {
 			r.log.Warn("Failed to remove file content container", zap.String("container_id", cc.ID), zap.Error(err))
 		}
 	}()

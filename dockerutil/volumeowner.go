@@ -58,7 +58,7 @@ func SetVolumeOwner(ctx context.Context, opts VolumeOwnerOptions) error {
 		},
 		&container.HostConfig{
 			Binds:      []string{opts.VolumeName + ":" + mountPath},
-			AutoRemove: true,
+			AutoRemove: false,
 		},
 		nil, // No networking necessary.
 		nil,
@@ -68,16 +68,8 @@ func SetVolumeOwner(ctx context.Context, opts VolumeOwnerOptions) error {
 		return fmt.Errorf("creating container: %w", err)
 	}
 
-	autoRemoved := false
 	defer func() {
-		if autoRemoved {
-			// No need to attempt removing the container if we successfully started and waited for it to complete.
-			return
-		}
-
-		if err := opts.Client.ContainerRemove(ctx, cc.ID, container.RemoveOptions{
-			Force: true,
-		}); err != nil {
+		if err := removeContainerBestEffort(ctx, opts.Client, cc.ID); err != nil {
 			opts.Log.Warn("Failed to remove volume-owner container", zap.String("container_id", cc.ID), zap.Error(err))
 		}
 	}()
@@ -93,8 +85,6 @@ func SetVolumeOwner(ctx context.Context, opts VolumeOwnerOptions) error {
 	case err := <-errCh:
 		return err
 	case res := <-waitCh:
-		autoRemoved = true
-
 		if res.Error != nil {
 			return fmt.Errorf("waiting for volume-owner container: %s", res.Error.Message)
 		}
