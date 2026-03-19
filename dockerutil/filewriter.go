@@ -59,7 +59,7 @@ func (w *FileWriter) WriteFile(ctx context.Context, volumeName, relPath string, 
 		},
 		&container.HostConfig{
 			Binds:      []string{volumeName + ":" + mountPath},
-			AutoRemove: true,
+			AutoRemove: false,
 		},
 		nil, // No networking necessary.
 		nil,
@@ -69,16 +69,8 @@ func (w *FileWriter) WriteFile(ctx context.Context, volumeName, relPath string, 
 		return fmt.Errorf("creating container: %w", err)
 	}
 
-	autoRemoved := false
 	defer func() {
-		if autoRemoved {
-			// No need to attempt removing the container if we successfully started and waited for it to complete.
-			return
-		}
-
-		if err := w.cli.ContainerRemove(ctx, cc.ID, container.RemoveOptions{
-			Force: true,
-		}); err != nil {
+		if err := removeContainerBestEffort(ctx, w.cli, cc.ID); err != nil {
 			w.log.Warn("Failed to remove file content container", zap.String("container_id", cc.ID), zap.Error(err))
 		}
 	}()
@@ -126,8 +118,6 @@ func (w *FileWriter) WriteFile(ctx context.Context, volumeName, relPath string, 
 	case err := <-errCh:
 		return err
 	case res := <-waitCh:
-		autoRemoved = true
-
 		if res.Error != nil {
 			return fmt.Errorf("waiting for write-file container: %s", res.Error.Message)
 		}
