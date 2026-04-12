@@ -15,6 +15,9 @@ on:
   schedule:
     - cron: '59 23 * * 5'
 
+env:
+  GO_VERSION: 1.26.2
+
 jobs:
   analyze:
     name: Analyze
@@ -35,6 +38,11 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Set up Go ${{ env.GO_VERSION }}
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
