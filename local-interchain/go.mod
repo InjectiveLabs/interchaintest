@@ -1,6 +1,6 @@
 module github.com/strangelove-ventures/interchaintest/local-interchain
 
-go 1.26.2
+go 1.26.4
 
 replace (
 	cosmossdk.io/api => github.com/InjectiveLabs/cosmos-sdk/api v0.50.14-inj.9

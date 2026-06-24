@@ -15,6 +15,7 @@ import (
 	"github.com/moby/moby/client"
 	"github.com/moby/moby/errdefs"
 	"github.com/moby/moby/pkg/stdcopy"
+	"github.com/strangelove-ventures/interchaintest/v8/dockerutil"
 )
 
 // compile will compile the specified repo using the specified docker image and version.
@@ -91,7 +92,7 @@ func compile(image string, optVersion string, repoPath string) (string, error) {
 		return "", fmt.Errorf("create container %s: %w", imageFull, err)
 	}
 
-	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
+	if err := dockerutil.StartContainer(ctx, cli, resp.ID); err != nil {
 		return "", fmt.Errorf("start container %s: %w", imageFull, err)
 	}
 

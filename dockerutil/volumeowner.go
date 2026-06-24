@@ -74,7 +74,7 @@ func SetVolumeOwner(ctx context.Context, opts VolumeOwnerOptions) error {
 		}
 	}()
 
-	if err := opts.Client.ContainerStart(ctx, cc.ID, container.StartOptions{}); err != nil {
+	if err := StartContainer(ctx, opts.Client, cc.ID); err != nil {
 		return fmt.Errorf("starting volume-owner container: %w", err)
 	}
 

@@ -107,7 +107,7 @@ func (w *FileWriter) WriteFile(ctx context.Context, volumeName, relPath string, 
 		return fmt.Errorf("copying tar to container: %w", err)
 	}
 
-	if err := w.cli.ContainerStart(ctx, cc.ID, container.StartOptions{}); err != nil {
+	if err := StartContainer(ctx, w.cli, cc.ID); err != nil {
 		return fmt.Errorf("starting write-file container: %w", err)
 	}
 
