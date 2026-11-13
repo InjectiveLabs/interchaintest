@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net"
 	"regexp"
 	"strings"
 	"time"
@@ -24,11 +23,10 @@ import (
 var panicRe = regexp.MustCompile(`panic:.*\n`)
 
 type ContainerLifecycle struct {
-	log               *zap.Logger
-	client            *dockerclient.Client
-	containerName     string
-	id                string
-	preStartListeners Listeners
+	log           *zap.Logger
+	client        *dockerclient.Client
+	containerName string
+	id            string
 }
 
 func NewContainerLifecycle(log *zap.Logger, client *dockerclient.Client, containerName string) *ContainerLifecycle {
@@ -69,12 +67,10 @@ func (c *ContainerLifecycle) CreateContainer(
 		pS[k] = struct{}{}
 	}
 
-	pb, listeners, err := GeneratePortBindings(ports)
+	pb, _, err := GeneratePortBindings(ports)
 	if err != nil {
 		return fmt.Errorf("failed to generate port bindings: %w", err)
 	}
-
-	c.preStartListeners = listeners
 
 	cc, err := c.client.ContainerCreate(
 		ctx,
@@ -108,8 +104,6 @@ func (c *ContainerLifecycle) CreateContainer(
 		c.containerName,
 	)
 	if err != nil {
-		listeners.CloseAll()
-		c.preStartListeners = []net.Listener{}
 		return err
 	}
 	c.id = cc.ID
@@ -117,14 +111,6 @@ func (c *ContainerLifecycle) CreateContainer(
 }
 
 func (c *ContainerLifecycle) StartContainer(ctx context.Context) error {
-	// lock port allocation for the time between freeing the ports from the
-	// temporary listeners to the consumption of the ports by the container
-	mu.RLock()
-	defer mu.RUnlock()
-
-	c.preStartListeners.CloseAll()
-	c.preStartListeners = []net.Listener{}
-
 	if err := StartContainer(ctx, c.client, c.id); err != nil {
 		return err
 	}
