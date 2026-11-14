@@ -3,12 +3,9 @@ package dockerutil
 import (
 	"fmt"
 	"net"
-	"sync"
 
 	"github.com/docker/go-connections/nat"
 )
-
-var mu sync.RWMutex
 
 type Listeners []net.Listener
 
@@ -25,8 +22,6 @@ func OpenListener(port int) (*net.TCPListener, error) {
 		return nil, err
 	}
 
-	mu.Lock()
-	defer mu.Unlock()
 	l, err := net.ListenTCP("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -56,43 +51,19 @@ func GetPort(port int) (nat.PortBinding, *net.TCPListener, error) {
 	}, l, nil
 }
 
-// GeneratePortBindings will find open ports on the local
-// machine and create a PortBinding for every port in the portSet.
-// If a port is already bound, it will use that port as an override.
+// GeneratePortBindings requests Docker-assigned host ports for every container port.
+// Existing bindings are ignored so Docker can allocate host ports without races.
+// No listeners are opened; the extra return values are kept for compatibility.
 func GeneratePortBindings(pairs nat.PortMap) (nat.PortMap, Listeners, error) {
-	m := make(nat.PortMap)
-	listeners := make(Listeners, 0, len(pairs))
-
-	var pb nat.PortBinding
-	var l *net.TCPListener
-	var err error
-
-	for p, bind := range pairs {
-		_ = bind
-
-		// ALWAYS a random port
-		pb, l, err = GetPort(0)
-
-		// if len(bind) == 0 {
-		// 	// random port
-		// 	pb, l, err = GetPort(0)
-		// } else {
-		// 	var pNum int
-		// 	if pNum, err = strconv.Atoi(bind[0].HostPort); err != nil {
-		// 		return nat.PortMap{}, nil, err
-		// 	}
-
-		// 	pb, l, err = GetPort(pNum)
-		// }
-
-		if err != nil {
-			listeners.CloseAll()
-			return nat.PortMap{}, nil, err
+	bindings := make(nat.PortMap, len(pairs))
+	for port := range pairs {
+		bindings[port] = []nat.PortBinding{
+			{
+				HostIP:   "0.0.0.0",
+				HostPort: "",
+			},
 		}
-
-		listeners = append(listeners, l)
-		m[p] = []nat.PortBinding{pb}
 	}
 
-	return m, listeners, nil
+	return bindings, nil, nil
 }
